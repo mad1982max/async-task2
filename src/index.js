@@ -19,15 +19,15 @@ class CustomArr extends Array {
         super(...arr);
     }
 
-    mapParallel(callback) { //checked by N.D.
+    mapParallel(callback) {
         let result =[], arr = this;
         for (let i = 0; i < arr.length; i++) {
             result.push(callback(arr[i], i, arr));
-            }
+        }
         return Promise.all(result)
     }
 
-    someAsync(callback) { // not checked by N.D.
+    someParallel(callback) {
         let result = [], arr = this;
         for (let i = 0; i < arr.length; i++) {
             result.push(callback(arr[i], i, arr));
@@ -43,16 +43,51 @@ class CustomArr extends Array {
             return bool;
         });
     }
+
+    filterSeries(callback) {
+        let result = [];
+        return this.reduce((promise, item, index, arr) => {
+            return promise
+                .then(() => callback(item, index, arr))
+                .then((r) => {
+                    if(r) {
+                        result.push(item)
+                    }
+                });
+        }, Promise.resolve()).then(() => console.log(result))
+    }
+
+    someSeries(callback) {
+        let bool = false;
+        return this.reduce((promise, item, index, arr) => {
+            return promise
+                .then(() => callback(item, index, arr))
+                .then((r) => {
+                    if(r === true) {
+                        return bool = true;
+                    }
+                });
+        }, Promise.resolve()).then(() => console.log(bool))
+    }
 }
 
 //Example 1 (sync)-------------------------------
 const usersArr = new CustomArr(users);
+
 console.log(usersArr);//[{ id: 1, name: "Tom", region: "Ukraine" }, { id: 2, name: "Alex", region: "Ukraine" }]
 
 usersArr.mapParallel(user => user.name).then(r => console.log(r));//["Tom", "Alex"]
-usersArr.someAsync(user => user.name === 'Alex').then(r => console.log(r));
+
+usersArr.someParallel(user => user.name === 'Alex').then(r => console.log(r));
 //true
 
+usersArr.filterSeries(user => user.name === 'Alex');
+//{ id: 2, name: "Alex", region: "Ukraine" }
+
+usersArr.someSeries(user => user.name === "Alex"); //true
+usersArr.someSeries(user => user.name === "Trump"); //false
+
+//------------------------------------------------
 //Example 2 (async)-------------------------------
 const usersIdArr = new CustomArr(idArr);
 console.log(usersIdArr);//[ 1, 2 ]
@@ -62,10 +97,20 @@ usersIdArr.mapParallel(async i => {
 }).then(r => console.log(r));
 //[{ id: 1, name: "Tom", region: "Ukraine" },{{ id: 2, name: "Alex", region: "Ukraine" }]
 
-usersIdArr.someAsync(async i => {
+usersIdArr.someParallel(async i => {
     const user =  await getUserByIdWithDelay(i);
     return user.name === "Tom";
 }).then(r => console.log(r)); //true
+
+usersIdArr.filterSeries(async i => {
+    const user = await getUserByIdWithDelay(i);
+    return user.name === 'Alex'
+}); // [2]
+
+usersIdArr.someSeries(async i => {
+    const user = await getUserByIdWithDelay(i);
+    return user.name === 'Tom'
+}); // true
 
 
 //Helping function
