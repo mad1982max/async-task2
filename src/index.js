@@ -63,11 +63,22 @@ class CustomArr extends Array {
             return promise
                 .then(() => callback(item, index, arr))
                 .then((r) => {
-                    if(r === true) {
+                    if(r) {
                         return bool = true;
                     }
                 });
         }, Promise.resolve()).then(() => console.log(bool))
+    }
+
+    mapSeries(callback) {
+        let result = [];
+        return this.reduce((promise, item, index, arr) => {
+            return promise
+                .then(() => callback(item, index, arr))
+                .then((r) => {
+                    result.push(r);
+                })
+        }, Promise.resolve()).then(() => console.log(result))
     }
 }
 
@@ -86,6 +97,8 @@ usersArr.filterSeries(user => user.name === 'Alex');
 
 usersArr.someSeries(user => user.name === "Alex"); //true
 usersArr.someSeries(user => user.name === "Trump"); //false
+
+usersArr.mapSeries(user => user.name); //[ "Tom", "Alex" ]
 
 //------------------------------------------------
 //Example 2 (async)-------------------------------
@@ -112,6 +125,10 @@ usersIdArr.someSeries(async i => {
     return user.name === 'Tom'
 }); // true
 
+usersIdArr.mapSeries(async i => {
+    const user = await getUserByIdWithDelay(i);
+    return user.region;
+}); // [ "Ukraine", "Ukraine" ]
 
 //Helping function
 
@@ -130,5 +147,3 @@ function getUserByIdWithDelay(id) {
 }
 
 //-------------------------------
-
-
